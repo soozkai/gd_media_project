@@ -1,0 +1,23 @@
+.register-page {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .register-form {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+  }
+  
+  .register-image {
+    flex: 1;
+    background: url('src/views/pages/login/bg.jpg') no-repeat center center;
+    background-size: cover;
+  }
+  
+  .transparent-card {
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+  
