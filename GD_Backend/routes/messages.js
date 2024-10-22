@@ -18,15 +18,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// GET route to fetch messages
+// GET route to fetch messages with user group names
 router.get('/', authenticateToken, (req, res) => {
     const userId = req.user.id;
 
     const query = `
         SELECT m.id, m.title, m.description, m.start_date, m.end_date, m.file_type, m.content, m.selected_rooms,
-        GROUP_CONCAT(r.room_number) as room_numbers
+        GROUP_CONCAT(r.room_number) as room_numbers, ug.name as group_name, m.group_id
         FROM messages m
         LEFT JOIN rooms r ON JSON_CONTAINS(m.selected_rooms, CAST(r.id AS JSON), '$')
+        LEFT JOIN user_groups ug ON m.group_id = ug.id
         WHERE m.user_id = ?
         GROUP BY m.id
     `;
@@ -52,15 +53,15 @@ router.get('/', authenticateToken, (req, res) => {
     });
 });
 
-// POST route for adding a new message with multiple files and selected rooms
+// POST route for adding a new message with multiple files, selected rooms, and group
 router.post('/add', authenticateToken, upload.array('content', 5), (req, res) => {
-    const { title, description, start_date, end_date, file_type, selectedRooms } = req.body;
+    const { title, description, start_date, end_date, file_type, selectedRooms, group_id } = req.body;
     const files = req.files.map(file => file.filename); 
     const content = JSON.stringify(files); 
     const userId = req.user.id;
 
-    const query = 'INSERT INTO messages (title, description, start_date, end_date, file_type, content, user_id, selected_rooms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-    connection.query(query, [title, description, start_date, end_date, file_type, content, userId, selectedRooms], (err, results) => {
+    const query = 'INSERT INTO messages (title, description, start_date, end_date, file_type, content, user_id, selected_rooms, group_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    connection.query(query, [title, description, start_date, end_date, file_type, content, userId, selectedRooms, group_id], (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -69,10 +70,10 @@ router.post('/add', authenticateToken, upload.array('content', 5), (req, res) =>
     });
 });
 
-// PUT route for updating a message with multiple files and selected rooms
+// PUT route for updating a message with multiple files, selected rooms, and group
 router.put('/:id', authenticateToken, upload.array('content', 5), (req, res) => {
     const { id } = req.params;
-    const { title, description, start_date, end_date, file_type, selectedRooms } = req.body;
+    const { title, description, start_date, end_date, file_type, selectedRooms, group_id } = req.body;
     const userId = req.user.id;
 
     let content;
@@ -81,8 +82,8 @@ router.put('/:id', authenticateToken, upload.array('content', 5), (req, res) => 
         content = JSON.stringify(files); // Store filenames as a JSON string
     }
 
-    let query = 'UPDATE messages SET title = ?, description = ?, start_date = ?, end_date = ?, file_type = ?, selected_rooms = ?';
-    const params = [title, description, start_date, end_date, file_type, selectedRooms];
+    let query = 'UPDATE messages SET title = ?, description = ?, start_date = ?, end_date = ?, file_type = ?, selected_rooms = ?, group_id = ?';
+    const params = [title, description, start_date, end_date, file_type, selectedRooms, group_id];
 
     if (content) {
         query += ', content = ?';
@@ -92,7 +93,6 @@ router.put('/:id', authenticateToken, upload.array('content', 5), (req, res) => 
     query += ' WHERE id = ? AND user_id = ?';
     params.push(id, userId);
 
-    // Pass the full array `params` not just [userId]
     connection.query(query, params, (err, results) => {
         if (err) {
             console.error(err);
@@ -122,7 +122,6 @@ router.delete('/:id', authenticateToken, (req, res) => {
         let files = [];
         if (message.content) {
             try {
-                // Check if content is a string and perform replace, otherwise parse directly if it's an array
                 const contentString = typeof message.content === 'string' ? message.content.replace(/'/g, '"') : JSON.stringify(message.content);
                 files = JSON.parse(contentString);
             } catch (parseError) {
@@ -132,8 +131,6 @@ router.delete('/:id', authenticateToken, (req, res) => {
 
             files.forEach(file => {
                 const filePath = path.join(__dirname, '..', 'uploads', file);
-
-                // Delete the file from the filesystem
                 fs.unlink(filePath, (err) => {
                     if (err) {
                         console.error('Error deleting file:', err);

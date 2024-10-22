@@ -1,0 +1,90 @@
+/* CSS (ChannelPage.css) */
+.channel-row.move-animation {
+    animation: moveAnimation 0.5s ease-in-out;
+}
+
+@keyframes moveAnimation {
+    0% {
+        transform: scale(1.05);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* CSS (AppPage.css) */
+.app-row.move-animation {
+    animation: moveAnimation 0.5s ease-in-out;
+}
+
+@keyframes moveAnimation {
+    0% {
+        transform: scale(1.05);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.facility-enter {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  .facility-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 500ms, transform 500ms;
+  }
+  .facility-exit {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .facility-exit-active {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 500ms, transform 500ms;
+  }
+  
+  .move-animation {
+    animation: moveAnimation 0.5s ease-in-out;
+}
+
+@keyframes moveAnimation {
+    0% {
+        transform: scale(1.05);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+.button-spacing {
+    margin: 0 5px; /* Adjust values as needed */
+  }
+.message-enter {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  
+  .message-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+  }
+  
+  .message-exit {
+    opacity: 1;
+  }
+  
+  .message-exit-active {
+    opacity: 0;
+    transition: opacity 300ms;
+  }

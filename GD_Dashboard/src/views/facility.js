@@ -23,8 +23,9 @@ import {
     CModalFooter,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilPencil, cilTrash } from '@coreui/icons';
+import { cilPencil, cilTrash, cilArrowTop, cilArrowBottom } from '@coreui/icons';
 import { useNavigate } from 'react-router-dom';
+import './CSS/style.css'; // Import the CSS for animations
 
 const Facility = () => {
     const [facilities, setFacilities] = useState([]);
@@ -39,9 +40,14 @@ const Facility = () => {
     });
 
     const [toast, addToast] = useState([]);
+    const [animateRow, setAnimateRow] = useState(null); // Track which row to animate
     const navigate = useNavigate();
 
     useEffect(() => {
+        fetchFacilities();
+    }, []);
+
+    const fetchFacilities = () => {
         const token = localStorage.getItem('token');
 
         fetch('http://localhost:3001/facilities', {
@@ -60,11 +66,10 @@ const Facility = () => {
                 return response.json();
             })
             .then((data) => {
-                console.log(data); // Log the data to check the fileType and content
-                setFacilities(data);
+                setFacilities(data); // Set facilities in state
             })
             .catch((error) => console.error('Error fetching facility list:', error));
-    }, []);
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -128,20 +133,9 @@ const Facility = () => {
             })
             .then((data) => {
                 if (data) {
-                    const updatedFacilities = editMode
-                        ? facilities.map((facility) => (facility.id === newFacility.id ? { ...facility, ...newFacility } : facility))
-                        : [...facilities, data.facility];
-                    setFacilities(updatedFacilities);
-                    setNewFacility({
-                        category: '',
-                        title: '',
-                        language: '',
-                        file_type: '',
-                        content: null,
-                    });
-                    setShowModal(false);
-                    setEditMode(false);
                     addToast(createToast('Facility saved successfully', 'success'));
+                    fetchFacilities(); // Re-fetch the facility list without a full page reload
+                    setShowModal(false); // Close modal after saving
                 }
             })
             .catch((error) => console.error('Error adding facility:', error));
@@ -173,10 +167,48 @@ const Facility = () => {
                 return response.json();
             })
             .then(() => {
+                // Filter out the deleted facility from the state
                 setFacilities(facilities.filter((facility) => facility.id !== id));
                 addToast(createToast('Facility deleted successfully', 'success'));
             })
             .catch((error) => console.error('Error deleting facility:', error));
+    };
+
+    const resetForm = () => {
+        setNewFacility({
+            category: '',
+            title: '',
+            language: '',
+            file_type: '',
+            content: null,
+        });
+        setEditMode(false);
+    };
+
+    const moveUp = (index) => {
+        if (index === 0 || !facilities || facilities.length === 0) {
+            addToast(createToast('Cannot move the facility up.', 'warning'));
+            return;
+        }
+        const newFacilities = [...facilities];
+        [newFacilities[index - 1], newFacilities[index]] = [newFacilities[index], newFacilities[index - 1]];
+        setFacilities(newFacilities);
+        setAnimateRow(index - 1); // Set the index to animate the moved row
+        setTimeout(() => setAnimateRow(null), 500); // Remove animation after 0.5s
+        addToast(createToast('Facility moved up successfully', 'info'));
+    };
+
+    const moveDown = (index) => {
+        if (index === facilities.length - 1 || !facilities || facilities.length === 0) {
+            addToast(createToast('Cannot move the facility down.', 'warning'));
+            return;
+        }
+        const newFacilities = [...facilities];
+        [newFacilities[index + 1], newFacilities[index]] = [newFacilities[index], newFacilities[index + 1]];
+        setFacilities(newFacilities);
+        setAnimateRow(index + 1); // Set the index to animate the moved row
+        setTimeout(() => setAnimateRow(null), 500); // Remove animation after 0.5s
+        addToast(createToast('Facility moved down successfully', 'info'));
     };
 
     const createToast = (message, color) => (
@@ -211,7 +243,7 @@ const Facility = () => {
                     </CTableHead>
                     <CTableBody>
                         {facilities.map((facility, index) => (
-                            <CTableRow key={index}>
+                            <CTableRow key={index} className={animateRow === index ? 'move-animation' : ''}>
                                 <CTableDataCell>{facility.id}</CTableDataCell>
                                 <CTableDataCell>{facility.category}</CTableDataCell>
                                 <CTableDataCell>{facility.title}</CTableDataCell>
@@ -232,6 +264,12 @@ const Facility = () => {
                                     </CButton>{' '}
                                     <CButton color="danger" size="sm" onClick={() => handleDelete(facility.id)}>
                                         <CIcon icon={cilTrash} />
+                                    </CButton>{' '}
+                                    <CButton color="secondary" size="sm" onClick={() => moveUp(index)}>
+                                        <CIcon icon={cilArrowTop} />
+                                    </CButton>{' '}
+                                    <CButton color="secondary" size="sm" onClick={() => moveDown(index)}>
+                                        <CIcon icon={cilArrowBottom} />
                                     </CButton>
                                 </CTableDataCell>
                                 <CTableDataCell>{new Date(facility.created_at).toLocaleString()}</CTableDataCell>
@@ -301,5 +339,5 @@ const Facility = () => {
             </CModal>
         </CCard>
     );
-}
+};
 export default Facility;

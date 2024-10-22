@@ -18,7 +18,7 @@ router.get('/', authenticateToken, (req, res) => {
 
 // POST route for adding a new room
 router.post('/add', authenticateToken, (req, res) => {
-  const { room_number, device_ip, mac_address, j_version, active_status } = req.body;
+  const { room_number, device_ip, mac_address, j_version, active_status, group_id } = req.body; // Include group_id
   const userId = req.user.id;
 
   connection.query('SELECT * FROM rooms WHERE user_id = ? AND room_number = ?', [userId, room_number], (err, results) => {
@@ -30,8 +30,8 @@ router.post('/add', authenticateToken, (req, res) => {
       return res.status(409).json({ error: 'Room number already exists' });
     }
 
-    const query = 'INSERT INTO rooms (room_number, device_ip, mac_address, j_version, active_status, user_id) VALUES (?, ?, ?, ?, ?, ?)';
-    connection.query(query, [room_number, device_ip, mac_address, j_version, active_status, userId], (err, results) => {
+    const query = 'INSERT INTO rooms (room_number, device_ip, mac_address, j_version, active_status, user_id, group_id) VALUES (?, ?, ?, ?, ?, ?, ?)'; // Include group_id in the query
+    connection.query(query, [room_number, device_ip, mac_address, j_version, active_status, userId, group_id], (err, results) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: 'Internal server error' });
@@ -44,7 +44,7 @@ router.post('/add', authenticateToken, (req, res) => {
 // PUT route for updating a room
 router.put('/:id', authenticateToken, (req, res) => {
   const { id } = req.params;
-  const { room_number, device_ip, mac_address, j_version, active_status } = req.body;
+  const { room_number, device_ip, mac_address, j_version, active_status, group_id } = req.body; // Include group_id
   const userId = req.user.id;
 
   connection.query('SELECT * FROM rooms WHERE user_id = ? AND room_number = ? AND id != ?', [userId, room_number, id], (err, results) => {
@@ -56,8 +56,8 @@ router.put('/:id', authenticateToken, (req, res) => {
       return res.status(409).json({ error: 'Room number already exists' });
     }
 
-    const query = 'UPDATE rooms SET room_number = ?, device_ip = ?, mac_address = ?, j_version = ?, active_status = ? WHERE id = ? AND user_id = ?';
-    connection.query(query, [room_number, device_ip, mac_address, j_version, active_status, id, userId], (err, results) => {
+    const query = 'UPDATE rooms SET room_number = ?, device_ip = ?, mac_address = ?, j_version = ?, active_status = ?, group_id = ? WHERE id = ? AND user_id = ?'; // Include group_id in the query
+    connection.query(query, [room_number, device_ip, mac_address, j_version, active_status, group_id, id, userId], (err, results) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: 'Internal server error' });
@@ -65,7 +65,7 @@ router.put('/:id', authenticateToken, (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ error: 'Room not found' });
       }
-      res.json({ message: 'Room updated successfully', room: { id, room_number, device_ip, mac_address, j_version, active_status, user_id: userId } });
+      res.json({ message: 'Room updated successfully', room: { id, room_number, device_ip, mac_address, j_version, active_status, group_id, user_id: userId } });
     });
   });
 });

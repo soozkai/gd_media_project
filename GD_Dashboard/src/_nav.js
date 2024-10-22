@@ -8,9 +8,15 @@ import {
   cilDescription,
   cilEnvelopeOpen,
   cilBuilding,
-  cilCommentSquare
+  cilCommentSquare,
+  cilHome,
+  cilSettings,
+  cilTv,
+  cilApps,
+  cilMediaPlay,
+  cilGroup,
 } from '@coreui/icons'
-import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
+import { CNavItem } from '@coreui/react'
 
 const _nav = [
   {
@@ -27,31 +33,25 @@ const _nav = [
     component: CNavItem,
     name: 'Welcome Page',
     to: '/welcomepage',
-    icon: <CIcon icon={cilRoom} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
     name: 'Background',
     to: '/background',
-    icon: <CIcon icon={cilRoom} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
     name: 'Home Page',
     to: '/home-page',
-    icon: <CIcon icon={cilRoom} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Live TV',
-    to: '/live-tv',
-    icon: <CIcon icon={cilTag} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
     name: 'Apps',
-    to: '/feedback',
-    icon: <CIcon icon={cilCommentSquare} customClassName="nav-icon" />,
+    to: '/apps',
+    icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
@@ -65,8 +65,18 @@ const _nav = [
     to: '/messages',
     icon: <CIcon icon={cilEnvelopeOpen} customClassName="nav-icon" />,
   },
-
-
+  {
+    component: CNavItem,
+    name: 'Channel',
+    to: '/channel',
+    icon: <CIcon icon={cilMediaPlay} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Group',
+    to: '/group',
+    icon: <CIcon icon={cilGroup} customClassName="nav-icon" />,
+  },
 ]
 
 export default _nav
