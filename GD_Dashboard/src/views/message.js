@@ -63,6 +63,7 @@ const Message = () => {
     const handleGroupFilterChange = (e) => {
         setSelectedGroupFilter(e.target.value);
     };
+
     const fetchMessages = () => {
         const token = localStorage.getItem('token');
         fetch('http://localhost:3001/messages', {
@@ -71,14 +72,17 @@ const Message = () => {
             },
         })
             .then((response) => {
+                if (response.status === 401 || response.status === 403) {
+                    handleLogout(); // Call handleLogout if unauthorized
+                    throw new Error('Unauthorized');
+                }
                 if (!response.ok) throw new Error('Network response was not ok');
                 return response.json();
             })
             .then((data) => {
-                // Map over the messages to assign new sequential IDs
                 const updatedMessages = data.map((message, index) => ({
                     ...message,
-                    displayId: index + 1, // Assign a new sequential displayId starting from 1
+                    displayId: index + 1,
                 }));
                 setMessages(updatedMessages);
             })
@@ -92,7 +96,13 @@ const Message = () => {
                 Authorization: token,
             },
         })
-            .then((response) => response.json())
+            .then((response) => {
+                if (response.status === 401 || response.status === 403) {
+                    handleLogout(); // Call handleLogout if unauthorized
+                    throw new Error('Unauthorized');
+                }
+                return response.json();
+            })
             .then((data) => {
                 const filteredRooms = data.filter((room) => room.active_status === 1);
                 setAvailableRooms(filteredRooms);
@@ -107,24 +117,15 @@ const Message = () => {
                 Authorization: token,
             },
         })
-            .then((response) => response.json())
+            .then((response) => {
+                if (response.status === 401 || response.status === 403) {
+                    handleLogout(); // Call handleLogout if unauthorized
+                    throw new Error('Unauthorized');
+                }
+                return response.json();
+            })
             .then((data) => setGroups(data))
             .catch((error) => console.error('Error fetching groups:', error));
-    };
-
-    const handleButtonClick = (callback) => {
-        setButtonAnimation('button-click-animation');
-        setTimeout(() => {
-            setButtonAnimation(null);
-        }, 200);
-        callback();
-    };
-
-    const handleDotClick = (messageId, index) => {
-        setCurrentImageIndexes((prevIndexes) => ({
-            ...prevIndexes,
-            [messageId]: index,
-        }));
     };
 
     const handleImageClick = (image) => {
@@ -141,7 +142,19 @@ const Message = () => {
             file_type,
         });
     };
+    const validateMessageInputs = () => {
+        if (!newMessage.title || !newMessage.description || !newMessage.start_date || !newMessage.end_date) {
+            toast.error('Please fill in all required fields.');
+            return false; // Return false if validation fails
+        }
 
+        if (!newMessage.content || (Array.isArray(newMessage.content) && newMessage.content.length === 0)) {
+            toast.error('Please upload at least one image or video.');
+            return false; // Return false if no content is provided
+        }
+
+        return true; // Return true if validation passes
+    };
     const handleRoomSelect = (room) => {
         setSelectedRooms([...selectedRooms, room]);
         setAvailableRooms(availableRooms.filter((r) => r.id !== room.id));
@@ -163,7 +176,16 @@ const Message = () => {
     const handleGroupChange = (e) => {
         setSelectedGroup(e.target.value);
     };
-
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        toast.error('Your session has timed out. Please log in again.', {
+            onClose: () => {
+                setTimeout(() => {
+                    navigate('/login');
+                }, 3000);
+            },
+        });
+    };
     const handleDelete = (id) => {
         const token = localStorage.getItem('token');
         fetch(`http://localhost:3001/messages/${id}`, {
@@ -173,19 +195,26 @@ const Message = () => {
             },
         })
             .then((response) => {
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (response.status === 401 || response.status === 403) {
+                    handleLogout(); // Call handleLogout if unauthorized
+                    throw new Error('Unauthorized');
+                }
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
                 return response.json();
             })
             .then(() => {
-                // Refetch messages and reassign IDs
-                fetchMessages();
-                toast.success('Message deleted successfully');
+                fetchMessages(); // Refetch messages after deletion
+                toast.error('Message deleted successfully');
             })
             .catch((error) => console.error('Error deleting message:', error));
     };
 
     const handleEdit = (message) => {
         const content = Array.isArray(message.content) ? message.content : message.content ? JSON.parse(message.content) : [];
+
+
         setNewMessage({
             id: message.id,
             title: message.title,
@@ -196,27 +225,29 @@ const Message = () => {
             file_type: message.file_type,
             selectedRooms: message.selected_rooms,
         });
-        setSelectedGroup(message.group_id); // Set the group ID for editing
+
+        setSelectedGroup(message.group_id);
         setEditMode(true);
         setShowModal(true);
     };
     const handleMoveUp = (index) => {
         if (index === 0 || messages.length === 0) {
-            toast.error('Cannot move the message up.');
+            toast.error('Cannot move the message up.'); // Toast for error condition
             return;
         }
         const newMessages = [...messages];
         [newMessages[index - 1], newMessages[index]] = [newMessages[index], newMessages[index - 1]];
 
-        // Reassign displayId values based on the new order
         const updatedMessages = newMessages.map((message, idx) => ({
             ...message,
             displayId: idx + 1,
         }));
 
         setMessages(updatedMessages);
-        setAnimateRow(index - 1); // Set animation for the row that is moved up
-        setTimeout(() => setAnimateRow(null), 500); // Clear animation after 0.5s
+        setAnimateRow(index - 1);
+        setTimeout(() => setAnimateRow(null), 500);
+
+        toast.success('Message moved up successfully.');
     };
 
     const handleMoveDown = (index) => {
@@ -227,19 +258,23 @@ const Message = () => {
         const newMessages = [...messages];
         [newMessages[index + 1], newMessages[index]] = [newMessages[index], newMessages[index + 1]];
 
-        // Reassign displayId values based on the new order
         const updatedMessages = newMessages.map((message, idx) => ({
             ...message,
             displayId: idx + 1,
         }));
 
         setMessages(updatedMessages);
-        setAnimateRow(index + 1); // Set animation for the row that is moved down
-        setTimeout(() => setAnimateRow(null), 500); // Clear animation after 0.5s
+        setAnimateRow(index + 1);
+        setTimeout(() => setAnimateRow(null), 500);
+
+        toast.success('Message moved down successfully.');
     };
 
     const handleAddMessage = (e) => {
         e.preventDefault();
+
+        if (!validateMessageInputs()) return;
+
         const token = localStorage.getItem('token');
         const formData = new FormData();
         formData.append('title', newMessage.title);
@@ -248,7 +283,6 @@ const Message = () => {
         formData.append('end_date', newMessage.end_date);
         formData.append('file_type', newMessage.file_type);
 
-        // Only append group_id if it's selected
         if (selectedGroup) {
             formData.append('group_id', selectedGroup);
         }
@@ -274,24 +308,29 @@ const Message = () => {
             body: formData,
         })
             .then((response) => {
+                if (response.status === 401 || response.status === 403) {
+                    handleLogout(); // Call handleLogout if unauthorized
+                    throw new Error('Unauthorized');
+                }
                 if (!response.ok) throw new Error('Network response was not ok');
                 return response.json();
             })
             .then((data) => {
                 setShowModal(false);
                 setEditMode(false);
-                toast.success('Message saved successfully');
-                // Refresh the page after saving the message
-                window.location.reload();
+                toast.success('Message saved successfully'); // Using React Toastify's toast function
+                fetchMessages(); // Optionally refresh messages
             })
             .catch((error) => console.error('Error adding message:', error));
     };
+
     // Initial data fetch
     useEffect(() => {
         fetchMessages();
         fetchRooms();
         fetchGroups();
     }, []);
+
 
     // Return section
     return (
@@ -328,7 +367,7 @@ const Message = () => {
                     <CTable striped hover>
                         <CTableHead>
                             <CTableRow>
-                                <CTableHeaderCell>ID</CTableHeaderCell>
+                                <CTableHeaderCell>Order</CTableHeaderCell> {/* Changed from ID to Order */}
                                 <CTableHeaderCell>Title</CTableHeaderCell>
                                 <CTableHeaderCell>Description</CTableHeaderCell>
                                 <CTableHeaderCell>Start Date</CTableHeaderCell>
@@ -343,13 +382,9 @@ const Message = () => {
                         <CTableBody>
                             <TransitionGroup component={null}>
                                 {filteredMessages.map((message, index) => (
-                                    <CSSTransition
-                                        key={message.id}
-                                        timeout={300}
-                                        classNames="message"
-                                    >
-                                        <CTableRow key={index} className={animateRow === index ? 'move-animation' : ''}>
-                                            <CTableDataCell>{message.id}</CTableDataCell>
+                                    <CSSTransition key={message.id} timeout={300} classNames="message">
+                                        <CTableRow>
+                                            <CTableDataCell>{message.displayId}</CTableDataCell> {/* Use displayId here */}
                                             <CTableDataCell>{message.title}</CTableDataCell>
                                             <CTableDataCell>{message.description}</CTableDataCell>
                                             <CTableDataCell>{format(new Date(message.start_date), 'dd/MM/yyyy hh:mm a')}</CTableDataCell>
@@ -358,39 +393,24 @@ const Message = () => {
                                             <CTableDataCell>
                                                 {message.file_type === 'image' && Array.isArray(message.content) ? (
                                                     <div>
-                                                        <img
-                                                            src={`http://localhost:3001/uploads/${message.content[currentImageIndexes[message.id] || 0]}`}
-                                                            alt={message.title}
-                                                            style={{ width: '100px', cursor: 'pointer' }}
-                                                            onClick={() => handleImageClick(message.content[currentImageIndexes[message.id] || 0])}
-                                                        />
-                                                        <div className="dots-container">
-                                                            {message.content.map((_, imgIndex) => (
-                                                                <span
-                                                                    key={imgIndex}
-                                                                    className={`dot ${imgIndex === (currentImageIndexes[message.id] || 0) ? 'active' : ''}`}
-                                                                    onClick={() => handleDotClick(message.id, imgIndex)}
-                                                                    style={{
-                                                                        height: '10px',
-                                                                        width: '10px',
-                                                                        margin: '0 5px',
-                                                                        backgroundColor: imgIndex === (currentImageIndexes[message.id] || 0) ? '#000' : '#bbb',
-                                                                        borderRadius: '50%',
-                                                                        display: 'inline-block',
-                                                                        cursor: 'pointer',
-                                                                    }}
-                                                                ></span>
-                                                            ))}
-                                                        </div>
+                                                        {message.content.map((img, idx) => (
+                                                            <img
+                                                                key={idx}
+                                                                src={`http://localhost:3001/uploads/${img}`}
+                                                                alt={message.title}
+                                                                style={{ width: '100px', cursor: 'pointer', marginRight: '5px' }}
+                                                                onClick={() => handleImageClick(img)}
+                                                            />
+                                                        ))}
                                                     </div>
                                                 ) : (
                                                     <span>Unsupported file type</span>
                                                 )}
                                             </CTableDataCell>
                                             <CTableDataCell>
-                                                {message.room_numbers ? (
-                                                    message.room_numbers.split(',').map((roomNumber, idx) => (
-                                                        <Chip key={idx} label={roomNumber} style={{ margin: '0 5px 5px 0' }} />
+                                                {message.selected_rooms && message.selected_rooms.length > 0 ? (
+                                                    message.selected_rooms.map((roomId, idx) => (
+                                                        <Chip key={idx} label={roomId} style={{ margin: '0 5px' }} />
                                                     ))
                                                 ) : (
                                                     <span>No rooms selected</span>
@@ -401,46 +421,22 @@ const Message = () => {
                                             </CTableDataCell>
                                             <CTableDataCell>
                                                 <Tooltip title="Edit" arrow>
-                                                    <CButton
-                                                        color="success"
-                                                        size="sm"
-                                                        className="m-1" // Added margin class for spacing
-                                                        style={{ borderRadius: '5px' }}
-                                                        onClick={() => handleEdit(room)}
-                                                    >
+                                                    <CButton color="success" size="sm" className="m-1" onClick={() => handleEdit(message)}>
                                                         <CIcon icon={cilPencil} />
                                                     </CButton>
                                                 </Tooltip>
                                                 <Tooltip title="Delete" arrow>
-                                                    <CButton
-                                                        color="danger"
-                                                        size="sm"
-                                                        className="m-1" // Added margin class for spacing
-                                                        style={{ borderRadius: '5px' }}
-                                                        onClick={() => handleDelete(room.id)}
-                                                    >
+                                                    <CButton color="danger" size="sm" className="m-1" onClick={() => handleDelete(message.id)}>
                                                         <CIcon icon={cilTrash} />
                                                     </CButton>
                                                 </Tooltip>
                                                 <Tooltip title="Move Up" arrow>
-                                                    <CButton
-                                                        color="dark"
-                                                        size="sm"
-                                                        className="m-1" // Added margin class for spacing
-                                                        style={{ borderRadius: '5px' }}
-                                                        onClick={() => moveUp(index)}
-                                                    >
+                                                    <CButton color="dark" size="sm" className="m-1" onClick={() => handleMoveUp(index)}>
                                                         <CIcon icon={cilArrowTop} />
                                                     </CButton>
                                                 </Tooltip>
                                                 <Tooltip title="Move Down" arrow>
-                                                    <CButton
-                                                        color="dark"
-                                                        size="sm"
-                                                        className="m-1" // Added margin class for spacing
-                                                        style={{ borderRadius: '5px' }}
-                                                        onClick={() => moveDown(index)}
-                                                    >
+                                                    <CButton color="dark" size="sm" className="m-1" onClick={() => handleMoveDown(index)}>
                                                         <CIcon icon={cilArrowBottom} />
                                                     </CButton>
                                                 </Tooltip>
@@ -463,15 +459,16 @@ const Message = () => {
                             <CFormInput
                                 type="text"
                                 name="title"
-                                placeholder="Title"
+                                placeholder="Title *"
                                 value={newMessage.title || ''}
                                 onChange={handleInputChange}
                                 className="mb-3"
                             />
+
                             <CFormInput
                                 type="text"
                                 name="description"
-                                placeholder="Description"
+                                placeholder="Description *"
                                 value={newMessage.description || ''}
                                 onChange={handleInputChange}
                                 className="mb-3"
@@ -479,7 +476,7 @@ const Message = () => {
                             <CFormInput
                                 type="datetime-local"
                                 name="start_date"
-                                placeholder="Start Date"
+                                placeholder="Start Date *"
                                 value={newMessage.start_date || ''}
                                 onChange={handleInputChange}
                                 className="mb-3"
@@ -487,7 +484,7 @@ const Message = () => {
                             <CFormInput
                                 type="datetime-local"
                                 name="end_date"
-                                placeholder="End Date"
+                                placeholder="End Date *"
                                 value={newMessage.end_date || ''}
                                 onChange={handleInputChange}
                                 className="mb-3"

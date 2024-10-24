@@ -24,6 +24,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './CSS/style.css'; // Import custom CSS for animation
 
+
 const AppPage = () => {
     const [apps, setApps] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -47,7 +48,6 @@ const AppPage = () => {
         fetchApps();
     }, []);
 
-    // Fetch apps when component mounts
     const fetchApps = () => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -206,20 +206,20 @@ const AppPage = () => {
                         <CTableBody>
                             {apps && apps.length > 0 && apps.map((app, index) => (
                                 app && app.packageName ? (
-                                    <CTableRow key={index}>
+                                    <CTableRow key={index} className={`table-row ${index % 2 === 0 ? 'even-row' : 'odd-row'}`}>
                                         <CTableDataCell>{index + 1}</CTableDataCell>
                                         <CTableDataCell>{app.packageName}</CTableDataCell>
                                         <CTableDataCell>
-                                            <CButton color="secondary" size="sm" onClick={() => moveUp(index)}>
+                                            <CButton className="button-fade" color="dark" size="sm" onClick={() => moveUp(index)}>
                                                 <CIcon icon={cilArrowTop} />
                                             </CButton>{' '}
-                                            <CButton color="secondary" size="sm" onClick={() => moveDown(index)}>
+                                            <CButton className="button-fade" color="dark" size="sm" onClick={() => moveDown(index)}>
                                                 <CIcon icon={cilArrowBottom} />
                                             </CButton>{' '}
-                                            <CButton color="info" size="sm" onClick={() => handleEdit(app)}>
+                                            <CButton className="button-fade" color="success" size="sm" onClick={() => handleEdit(app)}>
                                                 <CIcon icon={cilPencil} />
                                             </CButton>{' '}
-                                            <CButton color="danger" size="sm" onClick={() => handleDelete(app.id)}>
+                                            <CButton className="button-fade" color="danger" size="sm" onClick={() => handleDelete(app.id)}>
                                                 <CIcon icon={cilTrash} />
                                             </CButton>
                                         </CTableDataCell>
@@ -265,4 +265,3 @@ const AppPage = () => {
 };
 
 export default AppPage;
-
